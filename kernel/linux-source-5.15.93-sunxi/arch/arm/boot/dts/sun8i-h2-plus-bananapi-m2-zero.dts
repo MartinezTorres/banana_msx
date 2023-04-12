@@ -7,7 +7,7 @@
  */
 
 /dts-v1/;
-#include "sun8i-h3.dtsi"
+#include "sun8i-h3-mod.dtsi"
 #include "sunxi-common-regulators.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>

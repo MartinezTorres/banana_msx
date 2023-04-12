@@ -97,7 +97,7 @@ ENTRY(stext)
  THUMB(	bx	r9		)	@ If this is a Thumb-2 kernel,
  THUMB(	.thumb			)	@ switch to Thumb now.
  THUMB(1:			)
-
+ 
 #ifdef CONFIG_ARM_VIRT_EXT
 	bl	__hyp_stub_install
 #endif
@@ -391,6 +391,45 @@ ENTRY(secondary_startup)
 	 */
 
  ARM_BE8(setend	be)				@ ensure we are in BE8 mode
+
+
+MRC p15, 0, r0, c0, c0, 5   @ Read the MPIDR register into r0
+AND r0, r0, #3              @ Mask out all but the lowest 2 bits
+CMP r0, #3                  @ Compare r0 with the value 3
+BNE not_core3               @ Branch to not_core3 if r0 is not equal to 3
+
+		ldr     sp, =0x58100000  @ set stack
+
+        ldr     r5, =0x58000000  @ get jump location
+
+		movs    r4, #0           @ old_clock
+        ldr     r6, =0x01C20C28  @ IO_MR1_CUR_VALUE_REG
+
+        ldr     r7, =0x01F02C10  @ IO_PIO_L
+        
+        str     r4, [r5]         @ set jump location to zero
+        
+
+.micro_os_l1:
+        ldr     r3, [r6]         @ read clock
+        cmp     r4, r3, lsr #21  @ compare old clock to the new read
+        lsr     r4, r3, #21      @ store new read to the old clock
+        beq     .micro_os_l1     @ unless it changes, jump back
+        
+        ldr     r3, [r7]         @ read gpio l
+        eor     r3, r3, #1024    @ toggle power led
+        str     r3, [r7]         @ store gpio_l
+
+        ldr     r3, [r5]         @ read target jump location
+        cmp     r3, #0           @ if target jump location is zero, skip
+        beq     .micro_os_l1             
+        blx     r3               @ jump to target location
+        b       .micro_os_l1
+
+
+ENTRY(not_core3)
+MOV r0, #0
+
 
 #ifdef CONFIG_ARM_VIRT_EXT
 	bl	__hyp_stub_install_secondary
