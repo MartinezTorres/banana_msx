@@ -6,16 +6,16 @@ extern uint32_t _DATA_ROM_START;
 extern uint32_t _DATA_RAM_START;
 extern uint32_t _DATA_RAM_END;
 
-void startup();
-int main();
+void startup(void);
+int main(void);
 
 // Define the vector table
-uint32_t *myvectors[2] 
-__attribute__ ((section("boot")))= {
-    (uint32_t *)    startup     // code entry point
+typedef void (*InitType)(void);
+InitType myvectors[1] __attribute__ ((section("boot")))= {
+    startup     // code entry point
 };
 
-void startup() {
+void startup(void) {
 	
     // Set memory in bss segment to zeros 
     uint32_t *bss_start_p = &_BSS_START; 

@@ -94,7 +94,7 @@ static loff_t banana_msx_llseek(struct file *filp, loff_t offset, int whence) {
 
 static int banana_msx_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-    struct page *page = NULL;
+    //struct page *page = NULL;
     unsigned long size = (unsigned long)(vma->vm_end - vma->vm_start);
 
     if (size > MAPPED_MEMORY_SIZE) return -EINVAL;
@@ -102,9 +102,9 @@ static int banana_msx_mmap(struct file *filp, struct vm_area_struct *vma)
     vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
 	vma->vm_flags |= VM_IO;
    
-    page = virt_to_page((unsigned long)msx.mapped_memory + (vma->vm_pgoff << PAGE_SHIFT)); 
+    //page = virt_to_page((unsigned long)msx.mapped_memory + (vma->vm_pgoff << PAGE_SHIFT)); 
 
-    return remap_pfn_range(vma, vma->vm_start, page_to_pfn(page), size, vma->vm_page_prot);
+    return remap_pfn_range(vma, vma->vm_start, MAPPED_MEMORY_ADDRESS >> PAGE_SHIFT, size, vma->vm_page_prot);
 }
 
 static const struct file_operations banana_msx_fops = {

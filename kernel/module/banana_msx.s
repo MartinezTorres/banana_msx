@@ -114,90 +114,36 @@ banana_msx_mmap:
 	.fnstart
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 0, uses_anonymous_args = 0
-	push	{r4, r5, r6, lr}	@
-	.save {r4, r5, r6, lr}
+	push	{r4, lr}	@
+	.save {r4, lr}
 	.pad #8
 	sub	sp, sp, #8	@,,
 	push	{lr}
 	bl	__gnu_mcount_nc
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:96: {
-	mov	r0, r1	@ vma, tmp179
+	mov	r0, r1	@ vma, tmp128
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:98:     unsigned long size = (unsigned long)(vma->vm_end - vma->vm_start);
-	ldrd	r1, r3, [r1]	@ _2, vma_21(D)->vm_end, vma
-	subs	r3, r3, r1	@ size, vma_21(D)->vm_end, _2
+	ldrd	r1, r3, [r1]	@ _2, vma_10(D)->vm_end, vma
+	subs	r3, r3, r1	@ size, vma_10(D)->vm_end, _2
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:100:     if (size > MAPPED_MEMORY_SIZE) return -EINVAL;
 	cmp	r3, #134217728	@ size,
-	bhi	.L14		@,
+	bhi	.L13		@,
+@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:107:     return remap_pfn_range(vma, vma->vm_start, MAPPED_MEMORY_ADDRESS >> PAGE_SHIFT, size, vma->vm_page_prot);
+	ldrd	r2, r4, [r0, #36]	@ vma_10(D)->vm_page_prot, vma_10(D)->vm_flags, vma,
+	str	r2, [sp]	@ vma_10(D)->vm_page_prot,
+	mov	r2, #360448	@,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:103: 	vma->vm_flags |= VM_IO;
-	ldr	r2, [r0, #40]	@ vma_21(D)->vm_flags, vma_21(D)->vm_flags
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:105:     page = virt_to_page((unsigned long)msx.mapped_memory + (vma->vm_pgoff << PAGE_SHIFT)); 
-	movw	r4, #:lower16:.LANCHOR0	@ tmp151,
-	movt	r4, #:upper16:.LANCHOR0	@ tmp151,
-	ldr	r5, [r0, #76]	@ vma_21(D)->vm_pgoff, vma_21(D)->vm_pgoff
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:103: 	vma->vm_flags |= VM_IO;
-	orr	r2, r2, #67108864	@ tmp148, vma_21(D)->vm_flags,
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:107:     return remap_pfn_range(vma, vma->vm_start, page_to_pfn(page), size, vma->vm_page_prot);
-	ldr	r6, [r0, #36]	@ vma_21(D)->vm_page_prot, vma_21(D)->vm_page_prot
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:103: 	vma->vm_flags |= VM_IO;
-	orr	r2, r2, #278528	@ tmp148, tmp148,
-	str	r2, [r0, #40]	@ tmp148, vma_21(D)->vm_flags
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:105:     page = virt_to_page((unsigned long)msx.mapped_memory + (vma->vm_pgoff << PAGE_SHIFT)); 
-	movw	r2, #:lower16:__pv_phys_pfn_offset	@ tmp158,
-	movt	r2, #:upper16:__pv_phys_pfn_offset	@ tmp158,
-	ldr	r4, [r4]	@ msx.mapped_memory, msx.mapped_memory
-	ldr	r2, [r2]	@ __pv_phys_pfn_offset, __pv_phys_pfn_offset
-	add	r4, r4, #1073741824	@ tmp152, msx.mapped_memory,
-	add	r4, r4, r5, lsl #12	@ tmp156, tmp152, vma_21(D)->vm_pgoff,
-	movs	r5, #36	@ tmp164,
-	add	r2, r2, r4, lsr #12	@ __pfn, __pv_phys_pfn_offset, tmp156,
-@ ./include/linux/mmzone.h:1356: 	if (unlikely(root >= NR_SECTION_ROOTS))
-	cmp	r2, #16777216	@ __pfn,
-@ ./include/linux/mmzone.h:1263: 	return pfn >> PFN_SECTION_SHIFT;
-	lsr	r4, r2, #16	@ _38, __pfn,
-@ ./include/linux/mmzone.h:1363: 	return &mem_section[root][nr & SECTION_ROOT_MASK];
-	ittte	cc
-	movwcc	lr, #:lower16:mem_section	@ tmp178,
-	movtcc	lr, #:upper16:mem_section	@ tmp178,
-	addcc	r4, lr, r4, lsl #4	@ _42, tmp178, _38,
-@ ./include/linux/mmzone.h:1357: 		return NULL;
-	movcs	r4, #0	@ _42,
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:105:     page = virt_to_page((unsigned long)msx.mapped_memory + (vma->vm_pgoff << PAGE_SHIFT)); 
-	mul	ip, r5, r2	@ tmp163, tmp164, __pfn
-	itt	cs
-	movwcs	lr, #:lower16:mem_section	@ tmp178,
-	movtcs	lr, #:upper16:mem_section	@ tmp178,
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:107:     return remap_pfn_range(vma, vma->vm_start, page_to_pfn(page), size, vma->vm_page_prot);
-	movw	r5, #36409	@ tmp175,
-	movt	r5, 14563	@ tmp175,
-@ ./include/linux/mmzone.h:1391: 	unsigned long map = section->section_mem_map;
-	ldr	r4, [r4]	@ map, _43->section_mem_map
-@ ./include/linux/mmzone.h:1392: 	map &= SECTION_MAP_MASK;
-	bic	r4, r4, #31	@ map, map,
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:105:     page = virt_to_page((unsigned long)msx.mapped_memory + (vma->vm_pgoff << PAGE_SHIFT)); 
-	add	r2, r4, ip	@ _25, map, tmp163
-@ ./include/linux/mm.h:1565: 	return (page->flags >> SECTIONS_PGSHIFT) & SECTIONS_MASK;
-	ldr	r4, [r4, ip]	@ MEM[(const struct page *)_25].flags, MEM[(const struct page *)_25].flags
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:107:     return remap_pfn_range(vma, vma->vm_start, page_to_pfn(page), size, vma->vm_page_prot);
-	str	r6, [sp]	@ vma_21(D)->vm_page_prot,
-@ ./include/linux/mm.h:1565: 	return (page->flags >> SECTIONS_PGSHIFT) & SECTIONS_MASK;
-	lsr	ip, r4, #24	@ tmp166, MEM[(const struct page *)_25].flags,
-@ ./include/linux/mmzone.h:1391: 	unsigned long map = section->section_mem_map;
-	lsl	ip, ip, #4	@ tmp168, tmp166,
-	ldr	r4, [lr, ip]	@ map, MEM <struct mem_section[256][1]> [(struct mem_section *)&mem_section][_34][0].section_mem_map
-@ ./include/linux/mmzone.h:1392: 	map &= SECTION_MAP_MASK;
-	bic	r4, r4, #31	@ map, map,
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:107:     return remap_pfn_range(vma, vma->vm_start, page_to_pfn(page), size, vma->vm_page_prot);
-	subs	r2, r2, r4	@ tmp171, _25, map
-	asrs	r2, r2, #2	@ tmp173, tmp171,
-@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:107:     return remap_pfn_range(vma, vma->vm_start, page_to_pfn(page), size, vma->vm_page_prot);
-	mul	r2, r5, r2	@, tmp175, tmp173
+	orr	r4, r4, #67108864	@ tmp123, vma_10(D)->vm_flags,
+	orr	r4, r4, #278528	@ tmp123, tmp123,
+	str	r4, [r0, #40]	@ tmp123, vma_10(D)->vm_flags
+@ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:107:     return remap_pfn_range(vma, vma->vm_start, MAPPED_MEMORY_ADDRESS >> PAGE_SHIFT, size, vma->vm_page_prot);
 	bl	remap_pfn_range		@
 .L11:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:108: }
 	add	sp, sp, #8	@,,
 	@ sp needed	@
-	pop	{r4, r5, r6, pc}	@
-.L14:
+	pop	{r4, pc}	@
+.L13:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:100:     if (size > MAPPED_MEMORY_SIZE) return -EINVAL;
 	mvn	r0, #21	@ <retval>,
 	b	.L11		@
@@ -236,7 +182,7 @@ banana_msx_write:
 	it	ge
 	movge	r7, #0	@ <retval>,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:59:     if (*pos >= MAPPED_MEMORY_SIZE) return 0;
-	bge	.L16		@,
+	bge	.L14		@,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:61:     if (*pos + count > MAPPED_MEMORY_SIZE) count = MAPPED_MEMORY_SIZE - *pos;
 	adds	r0, r4, r2	@ tmp175, count, _1
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:61:     if (*pos + count > MAPPED_MEMORY_SIZE) count = MAPPED_MEMORY_SIZE - *pos;
@@ -263,7 +209,7 @@ banana_msx_write:
 	ldr	r3, [r3]	@ msx.mapped_memory, msx.mapped_memory
 	add	r8, r3, r2	@ _8, msx.mapped_memory, _1
 @ ./include/linux/thread_info.h:216: 	if (WARN_ON_ONCE(bytes > INT_MAX))
-	blt	.L20		@,
+	blt	.L18		@,
 @ ./include/linux/thread_info.h:185: 		__check_object_size(ptr, n, to_user);
 	mov	r0, r8	@, _8
 	movs	r2, #0	@,
@@ -280,7 +226,7 @@ adds r2, r6, r4; sbcscc r2, r2, r3; movcc r3, #0	@ roksum, buf, count, flag
 @ ./include/linux/uaccess.h:157: 	if (!should_fail_usercopy() && likely(access_ok(from, n))) {
 	.thumb
 	.syntax unified
-	cbnz	r3, .L22	@ flag,
+	cbnz	r3, .L20	@ flag,
 @ ./arch/arm/include/asm/thread_info.h:87: 		(current_stack_pointer & ~(THREAD_SIZE - 1));
 	mov	r3, sp	@ current_stack_pointer, current_stack_pointer
 	bic	r3, r3, #8160	@ tmp156, current_stack_pointer,
@@ -323,20 +269,20 @@ adds r2, r6, r4; sbcscc r2, r2, r3; movcc r3, #0	@ roksum, buf, count, flag
 @ 0 "" 2
 	.thumb
 	.syntax unified
-.L22:
+.L20:
 @ ./include/linux/uaccess.h:161: 	if (unlikely(res))
-	cbnz	r0, .L26	@ n,
+	cbnz	r0, .L24	@ n,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:65:     *pos += count;
 	ldrd	r3, r2, [r5]	@ *pos_16(D), tmp182, pos
 	adds	r3, r3, r4	@ tmp179, *pos_16(D), count
 	str	r3, [r5]	@ tmp179, *pos_16(D)
 	adc	r2, r2, #0	@ tmp180, tmp182
 	str	r2, [r5, #4]	@ tmp180, *pos_16(D)
-.L16:
+.L14:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:68: }
 	mov	r0, r7	@, <retval>
 	pop	{r3, r4, r5, r6, r7, r8, r9, pc}	@
-.L20:
+.L18:
 @ ./include/linux/thread_info.h:216: 	if (WARN_ON_ONCE(bytes > INT_MAX))
 	movw	r4, #:lower16:.LANCHOR1	@ tmp149,
 	movt	r4, #:upper16:.LANCHOR1	@ tmp149,
@@ -345,7 +291,7 @@ adds r2, r6, r4; sbcscc r2, r2, r3; movcc r3, #0	@ roksum, buf, count, flag
 @ ./include/linux/thread_info.h:216: 	if (WARN_ON_ONCE(bytes > INT_MAX))
 	ldrb	r3, [r4]	@ zero_extendqisi2	@ __already_done, __already_done
 	cmp	r3, #0	@ __already_done
-	bne	.L16	@
+	bne	.L14	@
 	movs	r2, #9	@,
 	movs	r1, #216	@,
 	movw	r0, #:lower16:.LC0	@,
@@ -356,8 +302,8 @@ adds r2, r6, r4; sbcscc r2, r2, r3; movcc r3, #0	@ roksum, buf, count, flag
 @ ./include/linux/thread_info.h:216: 	if (WARN_ON_ONCE(bytes > INT_MAX))
 	strb	r5, [r4]	@ tmp152, __already_done
 	bl	warn_slowpath_fmt		@
-	b	.L16		@
-.L26:
+	b	.L14		@
+.L24:
 @ ./include/linux/uaccess.h:162: 		memset(to + (n - res), 0, res);
 	subs	r4, r4, r0	@ tmp160, count, n
 @ ./include/linux/fortify-string.h:175: 	return __underlying_memset(p, c, size);
@@ -368,7 +314,7 @@ adds r2, r6, r4; sbcscc r2, r2, r3; movcc r3, #0	@ roksum, buf, count, flag
 	mvn	r7, #13	@ <retval>,
 @ ./include/linux/fortify-string.h:175: 	return __underlying_memset(p, c, size);
 	bl	memset		@
-	b	.L16		@
+	b	.L14		@
 	.fnend
 	.size	banana_msx_write, .-banana_msx_write
 	.align	1
@@ -416,7 +362,7 @@ banana_msx_read:
 	it	ge
 	movge	r7, #0	@ <retval>,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:44:     if (*pos >= MAPPED_MEMORY_SIZE) return 0;
-	bge	.L28		@,
+	bge	.L26		@,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:46:     if (*pos + count > MAPPED_MEMORY_SIZE) count = MAPPED_MEMORY_SIZE - *pos;
 	adds	r0, r4, r2	@ tmp167, count, _1
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:46:     if (*pos + count > MAPPED_MEMORY_SIZE) count = MAPPED_MEMORY_SIZE - *pos;
@@ -443,7 +389,7 @@ banana_msx_read:
 	ldr	r3, [r3]	@ msx.mapped_memory, msx.mapped_memory
 	add	r8, r3, r2	@ _8, msx.mapped_memory, _1
 @ ./include/linux/thread_info.h:216: 	if (WARN_ON_ONCE(bytes > INT_MAX))
-	blt	.L32		@,
+	blt	.L30		@,
 @ ./include/linux/thread_info.h:185: 		__check_object_size(ptr, n, to_user);
 	mov	r0, r8	@, _8
 	movs	r2, #1	@,
@@ -460,21 +406,21 @@ adds r2, r6, r4; sbcscc r2, r2, r3; movcc r3, #0	@ roksum, buf, count, flag
 @ ./include/linux/uaccess.h:177: 	if (access_ok(to, n)) {
 	.thumb
 	.syntax unified
-	cbz	r3, .L38	@ flag,
-.L34:
+	cbz	r3, .L36	@ flag,
+.L32:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:48:     if (copy_to_user(buf, &msx.mapped_memory[*pos], count)) return -EFAULT;
-	cbnz	r0, .L36	@ n,
+	cbnz	r0, .L34	@ n,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:50:     *pos += count;
 	ldrd	r3, r2, [r5]	@ *pos_16(D), tmp174, pos
 	adds	r3, r3, r4	@ tmp171, *pos_16(D), count
 	str	r3, [r5]	@ tmp171, *pos_16(D)
 	adc	r2, r2, #0	@ tmp172, tmp174
 	str	r2, [r5, #4]	@ tmp172, *pos_16(D)
-.L28:
+.L26:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:53: }
 	mov	r0, r7	@, <retval>
 	pop	{r3, r4, r5, r6, r7, r8, r9, pc}	@
-.L38:
+.L36:
 @ ./arch/arm/include/asm/thread_info.h:87: 		(current_stack_pointer & ~(THREAD_SIZE - 1));
 	mov	r3, sp	@ current_stack_pointer, current_stack_pointer
 	bic	r3, r3, #8160	@ tmp154, current_stack_pointer,
@@ -517,18 +463,18 @@ adds r2, r6, r4; sbcscc r2, r2, r3; movcc r3, #0	@ roksum, buf, count, flag
 @ 0 "" 2
 	.thumb
 	.syntax unified
-	b	.L34		@
-.L32:
+	b	.L32		@
+.L30:
 @ ./include/linux/thread_info.h:216: 	if (WARN_ON_ONCE(bytes > INT_MAX))
 	movw	r4, #:lower16:.LANCHOR1	@ tmp147,
 	movt	r4, #:upper16:.LANCHOR1	@ tmp147,
 	ldrb	r3, [r4]	@ zero_extendqisi2	@ __already_done, __already_done
-	cbz	r3, .L35	@ __already_done,
-.L36:
+	cbz	r3, .L33	@ __already_done,
+.L34:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:48:     if (copy_to_user(buf, &msx.mapped_memory[*pos], count)) return -EFAULT;
 	mvn	r7, #13	@ <retval>,
-	b	.L28		@
-.L35:
+	b	.L26		@
+.L33:
 @ ./include/linux/thread_info.h:216: 	if (WARN_ON_ONCE(bytes > INT_MAX))
 	movs	r2, #9	@,
 	movs	r1, #216	@,
@@ -540,7 +486,7 @@ adds r2, r6, r4; sbcscc r2, r2, r3; movcc r3, #0	@ roksum, buf, count, flag
 @ ./include/linux/thread_info.h:216: 	if (WARN_ON_ONCE(bytes > INT_MAX))
 	strb	r5, [r4]	@ tmp150, __already_done
 	bl	warn_slowpath_fmt		@
-	b	.L28		@
+	b	.L26		@
 	.fnend
 	.size	banana_msx_read, .-banana_msx_read
 	.section	.rodata.str1.4
@@ -609,14 +555,14 @@ banana_msx_init:
 	bl	alloc_chrdev_region		@
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:138:     if ((err = alloc_chrdev_region(&d.dev, 0, 1, DEVICE_NAME))) {
 	mov	r5, r0	@ <retval>, tmp179
-	cbz	r0, .L40	@ <retval>,
+	cbz	r0, .L38	@ <retval>,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:139:         pr_err("Failed to allocate device number\n");
 	movw	r0, #:lower16:.LC2	@,
 	movt	r0, #:upper16:.LC2	@,
 	bl	_printk		@
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:140:         return err;
-	b	.L39		@
-.L40:
+	b	.L37		@
+.L38:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:143:     printk(KERN_INFO "Banana MSX allocated with major: %d, and minor: %d\n", MAJOR(d.dev), MINOR(d.dev));
 	ldr	r1, [r4, #4]	@ _9, d.dev
 	movw	r0, #:lower16:.LC3	@,
@@ -643,7 +589,7 @@ banana_msx_init:
 	bl	cdev_add		@
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:148:     if ((err = cdev_add(&d.cdev, d.dev, 1))) {
 	mov	r8, r0	@ err, tmp180
-	cbz	r0, .L42	@ err,
+	cbz	r0, .L40	@ err,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:149:         pr_err("Failed to add device\n");
 	movw	r0, #:lower16:.LC4	@,
 	movt	r0, #:upper16:.LC4	@,
@@ -656,8 +602,8 @@ banana_msx_init:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:150:         unregister_chrdev_region(d.dev, 1);
 	bl	unregister_chrdev_region		@
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:151:         return err;
-	b	.L39		@
-.L42:
+	b	.L37		@
+.L40:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:154:     if (IS_ERR(d.class = class_create(THIS_MODULE, DEVICE_NAME "_class"))) {
 	add	r2, r4, #76	@, tmp131,
 	mov	r0, r7	@, tmp146
@@ -669,7 +615,7 @@ banana_msx_init:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:154:     if (IS_ERR(d.class = class_create(THIS_MODULE, DEVICE_NAME "_class"))) {
 	str	r0, [r4, #68]	@ _15, d.class
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:154:     if (IS_ERR(d.class = class_create(THIS_MODULE, DEVICE_NAME "_class"))) {
-	bls	.L43		@,
+	bls	.L41		@,
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:155:         pr_err("Failed to create class\n");
 	movw	r0, #:lower16:.LC6	@,
 	movt	r0, #:upper16:.LC6	@,
@@ -684,8 +630,8 @@ banana_msx_init:
 @ ./include/linux/err.h:31: 	return (long) ptr;
 	ldr	r5, [r4, #68]	@ <retval>, d.class
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:158:         return PTR_ERR(d.class);
-	b	.L44		@
-.L43:
+	b	.L42		@
+.L41:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:161:     if (IS_ERR(d.device = device_create(d.class, NULL, MKDEV(MAJOR(d.dev), MINOR(d.dev)), NULL, DEVICE_NAME))) {
 	ldr	r2, [r4, #4]	@, d.dev
 	mov	r3, r5	@, <retval>
@@ -697,8 +643,8 @@ banana_msx_init:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:161:     if (IS_ERR(d.device = device_create(d.class, NULL, MKDEV(MAJOR(d.dev), MINOR(d.dev)), NULL, DEVICE_NAME))) {
 	str	r0, [r4, #72]	@ _24, d.device
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:161:     if (IS_ERR(d.device = device_create(d.class, NULL, MKDEV(MAJOR(d.dev), MINOR(d.dev)), NULL, DEVICE_NAME))) {
-	bhi	.L45		@,
-.L46:
+	bhi	.L43		@,
+.L44:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:190:     printk(KERN_INFO "Banana MSX: initialized\n");
 	movw	r0, #:lower16:.LC7	@,
 	movt	r0, #:upper16:.LC7	@,
@@ -707,8 +653,8 @@ banana_msx_init:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:190:     printk(KERN_INFO "Banana MSX: initialized\n");
 	bl	_printk		@
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:192:     return 0;
-	b	.L39		@
-.L45:
+	b	.L37		@
+.L43:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:162:         pr_err("Failed to create device\n");
 	movw	r0, #:lower16:.LC8	@,
 	movt	r0, #:upper16:.LC8	@,
@@ -725,11 +671,11 @@ banana_msx_init:
 	bl	unregister_chrdev_region		@
 @ ./include/linux/err.h:31: 	return (long) ptr;
 	ldr	r5, [r4, #72]	@ <retval>, d.device
-.L44:
+.L42:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:188:     if ((err = banana_msx_init_device())) return err;
 	cmp	r5, #0	@ <retval>
-	beq	.L46	@
-.L39:
+	beq	.L44	@
+.L37:
 @ /home/manel/repos/manel/msx/banana_msx/kernel/module/banana_msx.c:193: }
 	mov	r0, r5	@, <retval>
 	add	sp, sp, #8	@,,
