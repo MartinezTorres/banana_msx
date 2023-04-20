@@ -4,7 +4,7 @@ static constexpr unsigned long long operator ""_K(unsigned long long i) { return
 static constexpr unsigned long long operator ""_M(unsigned long long i) { return 1024 * 1024 * i; }
 extern "C" typedef void (*InitType)(void);
 
-#define Module(address, name, size, other) struct { uint8_t PAD_ ## name[address]; union { uint8_t name[size]; struct { other; }; }; }
+#define Module(address, name, size, other) struct __attribute__((__packed__)) { uint8_t PAD_ ## name[address-64_K]; union { uint8_t name[size]; struct { other; }; }; }
 #define M(...) __VA_ARGS__
 
 template<uint32_t SZ>
@@ -33,8 +33,6 @@ union H3_T {
 
 	typedef volatile uint32_t io;
 
-	//Module( 0x00000000, SRAM_A1, 64_K, M() );
-
 	Module( 0x01C20C00, IO_TIMER, 1_K, M(
 		io TMR_IRQ_EN_REG;
 		io TMR_IRQ_STA_REG;
@@ -59,10 +57,6 @@ union H3_T {
 		GPIO_PORT PA, PB, PC, PD, PE, PF, PG, PL;
 	) );	
 
-
-
-	
-
 	Module( 0x58000000, RAM, 128_M, M(
 		
 		volatile InitType init;
@@ -70,15 +64,59 @@ union H3_T {
 		uint8_t program[1_M];
 		Log<20> log;
 	));
-	
-	
-	
-	//Log<20> log;
 };
 
-//static H3_T *H3 = (H3_T *)0x00000000;
+static H3_T &H3 = *(H3_T *)64_K; // you can't assign the address zero, as it is UB.
 
-extern H3_T H3;
+MSX_BUSDIR
+MSX_MREQ
+MSX_WAIT
+MSX_RFSH
+MSX_INT
+MSX_M1
+MSX_IORQ
+MSX_RESET
+
+PA0  : MSX_A0
+PA15 : MSX_A15
+
+PA16 : MSX_RD
+PA17 : MSX_SLTSL
+
+PA18 : PCM0_SYNC --> I2C_SYNC
+PA19 : PCM0_CLK  --> I2C CLK
+PA20 : PCM0_DOUT --> I2C DOUT
+PA21 : PCM0_DIN  --> XXX
+
+PC0  : SPI0_MOSI --> LCD_MOSI/DIN
+PC1  : SPI0_MISO --> ## LCD_DC
+PC2  : SPI0_CLK  --> LCD_SCK
+PC3  : SPI0_CS   --> ## LCD_RESET
+
+PC7  : XXX
+
+
+
+PE0  : MSX_D0
+PE7  : MSX_D7
+
+PE8  : MSX_WAIT#
+PE9  : MSX_INT#
+
+PE10 : MSX_IORQ
+PE11 : MSX_RESET
+PE12 : TWI2_SCK --> ?
+PE13 : TWI2_SDA --> ?
+PE14 : MSX_MREQ
+PE15 : MSX_BUSDIR
+
+
+PL2  :
+PL4  :
+
+missing: RST LCD
+
+
 
 /*
 
@@ -110,6 +148,8 @@ struct {
 #define CS          (1<<18)	
 #define WR          (1<<19)	
 #define RD          (1<<20)	
+ 
+
 
 
 
