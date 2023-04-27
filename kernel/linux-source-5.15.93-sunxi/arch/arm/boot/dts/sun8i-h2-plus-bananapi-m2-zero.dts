@@ -18,13 +18,13 @@
 	compatible = "sinovoip,bpi-m2-zero", "allwinner,sun8i-h2-plus";
 
 	aliases {
-		serial0 = &uart0;
+		/* serial0 = &uart0; */
 		serial1 = &uart1;
 	};
 
-	chosen {
+	/*chosen {
 		stdout-path = "serial0:115200n8";
-	};
+	};*/
 
 	connector {
 		compatible = "hdmi-connector";
@@ -50,11 +50,11 @@
 	gpio_keys {
 		compatible = "gpio-keys";
 
-		sw4 {
+		/* sw4 {
 			label = "power";
 			linux,code = <BTN_0>;
 			gpios = <&r_pio 0 3 GPIO_ACTIVE_LOW>;
-		};
+		}; */
 	};
 
 	reg_vdd_cpux: vdd-cpux-regulator {
@@ -132,6 +132,10 @@
 	};
 };
 
+&i2s0 {
+	status = "okay";
+};
+
 &i2s2 {
 	status = "okay";
 };
@@ -172,7 +176,7 @@
 &uart0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart0_pa_pins>;
-	status = "okay";
+	status = "disabled";
 };
 
 &uart1 {

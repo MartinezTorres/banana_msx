@@ -71,15 +71,16 @@ struct Banana_MSX {
 			r(MEMORY_MAP::buffer_begin, new_pos);
 			
 			if (pos == new_pos) {
-				std::this_thread::sleep_for(10ms);				
+				std::this_thread::sleep_for(100ms);				
 				continue;
 			}
 			
 			char c;
 			r(MEMORY_MAP::buffer_begin+4+pos, c);
+			//printf("%06d %06d: %c %03d\n", pos, new_pos, c, c);
 			putchar(c);
 			pos++;
-			pos = pos & ((1<<16)-1);
+			pos = pos & ((1<<20)-1);
 		}
 	}
 	
@@ -87,8 +88,8 @@ struct Banana_MSX {
 	
 	void load_core() {
 
-#include "core/core.h"
-static constexpr const uint8_t core_process[] = CORE;
+		#include "core/core.h"
+		static constexpr const uint8_t core_process[] = CORE;
 		
 		uint32_t init = *(uint32_t *)&core_process[0];
 		
@@ -110,17 +111,17 @@ static constexpr const uint8_t core_process[] = CORE;
 	template<typename T>
 	void r(uint32_t pos, T &t) {
 		
-		//lseek(fd, pos - MEMORY_MAP::start, SEEK_SET);
-		//if (read(fd, &t, sizeof(T)) != sizeof(T)) throw std::runtime_error("Failed to read");
-		t = *(T*)(shared_mem + pos - MEMORY_MAP::start);
+		lseek(fd, pos - MEMORY_MAP::start, SEEK_SET);
+		if (read(fd, &t, sizeof(T)) != sizeof(T)) throw std::runtime_error("Failed to read");
+		//t = *(T*)(shared_mem + pos - MEMORY_MAP::start);
 	}
 
 	template<typename T>
 	void w(uint32_t pos, T t) {
 		
-		//lseek(fd, pos - MEMORY_MAP::start, SEEK_SET);
-		//if (write(fd, &t, sizeof(T)) != sizeof(T)) throw std::runtime_error("Failed to read");
-		*(T*)(shared_mem + pos - MEMORY_MAP::start) = t;
+		lseek(fd, pos - MEMORY_MAP::start, SEEK_SET);
+		if (write(fd, &t, sizeof(T)) != sizeof(T)) throw std::runtime_error("Failed to write");
+		//*(T*)(shared_mem + pos - MEMORY_MAP::start) = t;
 	}
 };
 
@@ -131,6 +132,6 @@ int main() {
 
 	banana.load_core();
 	
-	sleep(10);
+	sleep(5);
 
 }

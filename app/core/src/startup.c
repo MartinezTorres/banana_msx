@@ -17,6 +17,9 @@ InitType myvectors[1] __attribute__ ((section("boot")))= {
 
 void startup(void) {
 	
+	*((uint32_t *)0x58000000) = 0;
+
+	
     // Set memory in bss segment to zeros 
     uint32_t *bss_start_p = &_BSS_START; 
     uint32_t *bss_end_p   = &_BSS_END;

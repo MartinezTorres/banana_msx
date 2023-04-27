@@ -2,7 +2,7 @@ CXX = arm-none-eabi-c++
 GCC = arm-none-eabi-gcc
 OBJDUMP = arm-none-eabi-objdump
 OBJDUMPFLAGS = --visualize-jumps --source-comment="                                        ;" 
-CFLAGS = -Wall -Wextra -Os -mcpu=cortex-a7 -marm -ffreestanding
+CFLAGS = -Wall -Wextra -Ofast -mcpu=cortex-a7 -mthumb -ffreestanding -fno-exceptions
 
 OBJ = tmp/main.o
 

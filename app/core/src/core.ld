@@ -13,7 +13,7 @@ SECTIONS
     }
     _DATA_ROM_START = .;
 
-    .  = 0x58300000;  /* From 0x20000000 */      
+    .  = 0x58500000;  /* From 0x20000000 */      
 
     _DATA_RAM_START = .;
     .data : AT(_DATA_ROM_START) 

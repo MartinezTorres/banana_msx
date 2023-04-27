@@ -1,122 +1,26 @@
-#include <stdint.h>
+#include "h3.h"
 
-static constexpr unsigned long long operator ""_K(unsigned long long i) { return        1024 * i; }
-static constexpr unsigned long long operator ""_M(unsigned long long i) { return 1024 * 1024 * i; }
-extern "C" typedef void (*InitType)(void);
+enum {
+	RD = 1<<16, // PA
+	WR = 1<<21, // PA
+	SLTSL = 1<<17, // PA
 
-#define Module(address, name, size, other) struct __attribute__((__packed__)) { uint8_t PAD_ ## name[address-64_K]; union { uint8_t name[size]; struct { other; }; }; }
-#define M(...) __VA_ARGS__
+	LCD_CS = 1<<8, // PE
+	LCD_RESET = 1<<9, // PE
+	LCD_DC = 1<<10, // PE
 
-template<uint32_t SZ>
-struct Log {
+	SYS_CLK = 1<<11, // PE
+	MERQ = 1<<12, // PE
+	IORQ = 1<<13, // PE
+	RESET = 1<<14, // PE
+	BUSDIR = 1<<15, // PE
 	
-	uint32_t pos;
-	uint8_t data[1<<SZ];
-	
-	void init() { pos = 0; }
-	
-	void push(char c) {
-		data[pos++] = c;
-		pos = pos & ((1<<SZ)-1);
-	}
+	M1 = 1<<2, // PL
+	RFSH = 1<<4, // PL
 
-	Log& operator<<(const char *str) {
-		
-		while (*str) 
-			push(*str++);
-			
-		return *this;
-	}	
+	WAIT = 1<<4, // PC
+	IRQ = 1<<7, // PC
 };
-
-union H3_T {
-
-	typedef volatile uint32_t io;
-
-	Module( 0x01C20C00, IO_TIMER, 1_K, M(
-		io TMR_IRQ_EN_REG;
-		io TMR_IRQ_STA_REG;
-		io pad1[2];
-		io TMR0_CTRL_REG;
-		io TMR0_INTV_VALUE_REG;
-		io pad2[1];
-		io TMR1_CTRL_REG;
-		io TMR1_INTV_VALUE_REG;
-		io TMR1_CUR_VALUE_REG;
-	) );
-	
-	struct GPIO_PORT {
-		io CFG0, CFG1, CFG2, CFG3;
-		io DAY;
-		io DRV0, DRV1;
-		io PUL0, PUL1;
-		
-	};
-	
-	Module( 0x01C20800, PIO, 1_K, M(
-		GPIO_PORT PA, PB, PC, PD, PE, PF, PG, PL;
-	) );	
-
-	Module( 0x58000000, RAM, 128_M, M(
-		
-		volatile InitType init;
-		uint8_t stack[2_M - 4];
-		uint8_t program[1_M];
-		Log<20> log;
-	));
-};
-
-static H3_T &H3 = *(H3_T *)64_K; // you can't assign the address zero, as it is UB.
-
-MSX_BUSDIR
-MSX_MREQ
-MSX_WAIT
-MSX_RFSH
-MSX_INT
-MSX_M1
-MSX_IORQ
-MSX_RESET
-
-PA0  : MSX_A0
-PA15 : MSX_A15
-
-PA16 : MSX_RD
-PA17 : MSX_SLTSL
-
-PA18 : PCM0_SYNC --> I2C_SYNC
-PA19 : PCM0_CLK  --> I2C CLK
-PA20 : PCM0_DOUT --> I2C DOUT
-PA21 : PCM0_DIN  --> XXX
-
-PC0  : SPI0_MOSI --> LCD_MOSI/DIN
-PC1  : SPI0_MISO --> ## LCD_DC
-PC2  : SPI0_CLK  --> LCD_SCK
-PC3  : SPI0_CS   --> ## LCD_RESET
-
-PC7  : XXX
-
-
-
-PE0  : MSX_D0
-PE7  : MSX_D7
-
-PE8  : MSX_WAIT#
-PE9  : MSX_INT#
-
-PE10 : MSX_IORQ
-PE11 : MSX_RESET
-PE12 : TWI2_SCK --> ?
-PE13 : TWI2_SDA --> ?
-PE14 : MSX_MREQ
-PE15 : MSX_BUSDIR
-
-
-PL2  :
-PL4  :
-
-missing: RST LCD
-
-
 
 /*
 
@@ -190,11 +94,135 @@ void ascii8_mapper(void) {
 } msx;
 */
 
+
+static inline void set_cpu_speed() {
+	
+	H3.log.printf("Speed: %08x\n", H3.PLL_CPUX_CTRL_REG.DW );
+
+//	H3.PLL_CPUX_CTRL_REG.DW = 0x90001410;
+	H3.PLL_CPUX_CTRL_REG.DW = 0x90001810;
+//	H3.PLL_CPUX_CTRL_REG.DW = 0x90000810;
+
+	H3.log.printf("Speed: %08x\n", H3.PLL_CPUX_CTRL_REG.DW );
+}
+
+static inline void set_caches(bool enable_icache, bool enable_dcache) {
+    uint32_t sctlr;
+    asm volatile (
+        "MRC p15, 0, %[sctlr], c1, c0, 0\n"  // Read the SCTLR into %[sctlr]
+        : [sctlr] "=r" (sctlr)              // Define %[sctlr] as an output operand
+        :                                   // No inputs
+    );
+    
+    if (enable_icache) {
+        sctlr |= (1 << 12); // Set bit 12 (the I-bit) to enable the instruction cache
+        sctlr |= (1 << 11); // Set bit 11 to enable branch prediction
+    } else {
+        sctlr &= ~(1 << 12); // Clear bit 12 (the I-bit) to disable the instruction cache
+        sctlr &= ~(1 << 12); // Clear bit 11 to disable branch prediction
+    }
+    
+    if (enable_dcache) {
+        sctlr |= (1 << 2); // Set bit 2 (the C-bit) to enable the data cache
+    } else {
+        sctlr &= ~(1 << 2); // Clear bit 2 (the C-bit) to disable the data cache
+    }
+    
+    asm volatile (
+        "MCR p15, 0, %[sctlr], c1, c0, 0\n"  // Write the modified SCTLR value back to the register
+        "isb\n"
+        "dsb\n"
+        :                                   // No outputs
+        : [sctlr] "r" (sctlr)               // Define %[sctlr] as an input operand
+    );
+}
+
+
+static inline uint32_t read_sctlr() {
+    uint32_t sctlr;
+    asm volatile (
+        "MRC p15, 0, %[sctlr], c1, c0, 0\n"  // Read the SCTLR into %[sctlr]
+        : [sctlr] "=r" (sctlr)              // Define %[sctlr] as an output operand
+        :                                   // No inputs
+    );
+    return sctlr;
+}
+
+
+
+#define UNROLL1(a) do { {a} } while (false)
+#define UNROLL8(a) do { {a} {a} {a} {a} {a} {a} {a} {a} } while (false)
+
+
 extern "C" void main() {
 
+	
 	//while (1);
 
 	H3.log.init();
-	H3.log << "Hello world ARM!\n";
+	H3.log << "Hello ";
+	H3.log << " world ARM!\n";
+
+	H3.log.printf("read_sctlr %08x\n", read_sctlr() );
+	set_caches(false, false);
+	H3.log.printf("read_sctlr %08x\n", read_sctlr() );
+	set_caches(true, true);
+	H3.log.printf("read_sctlr %08x\n", read_sctlr() );
+	
+
+	H3.AHB1_APB1_CFG_REG.DW = 0x3140;
+	H3.CPUX_AXI_CFG_REG.DW = 0x20201;
+
+	constexpr uint32_t N_ITER = 100000;
+	constexpr uint32_t N_REP = 1;
+
+	uint32_t t0 = H3.TMR1_CUR_VALUE_REG.DW;
+	uint32_t v = 0;
+
+	uint32_t i = N_ITER;
+	while (i--) {
+		UNROLL1({
+			H3_T::io pa; pa.DW = H3.PA.DATA.DW;
+			H3_T::io pe; pe.DW = H3.PE.DATA.DW;
+			
+			H3_T::io msx_control_bus = pa;
+			msx_control_bus.byte3 = pe.byte1;
+			
+			if (msx_control_bus.bit15 && msx_control_bus.bit16) { 
+				pe.bit04 = pa.bit05;
+			}
+			v += pe.DW;
+			//H3.PE.DATA = pe;
+		});
+	}
+	H3.AHB1_APB1_CFG_REG.DW = 0x3180;
+	H3.CPUX_AXI_CFG_REG.DW = 0x20203;
+	if (v == 0) {
+		H3.log << "Done 2!\n";
+	} else {
+		H3.log << "Not Done 2!\n";
+	}
+	uint32_t t1 = H3.TMR1_CUR_VALUE_REG.DW;
+	int d = t0 - t1;
+
+	H3.log.printf(" %d %d %d \n", t0, t1, d);
+	
+	H3.log.printf("%d\n", d/(24 * N_REP * (N_ITER / 1000)));
+	
+	H3.log.printf("%08x\n", H3.CPUX_AXI_CFG_REG.DW );
+	
+	H3.log.printf("%08x\n", H3.AHB1_APB1_CFG_REG.DW );
+	
+	H3.log.printf("CPU_CLK_GATING_REG %08x\n", H3.CPU_CLK_GATING_REG.DW );
+	
+	
+	H3.log.printf("CPU0_RST_CTRL %08x\n", H3.CPU0_RST_CTRL.DW );
+	H3.log.printf("CPU0_CTRL_REG %08x\n", H3.CPU0_CTRL_REG.DW );
+	H3.log.printf("CPU0_STATUS_REG %08x\n", H3.CPU0_STATUS_REG.DW );
+	
+	H3.log.printf("CPU3_RST_CTRL %08x\n", H3.CPU3_RST_CTRL.DW );
+	H3.log.printf("CPU3_CTRL_REG %08x\n", H3.CPU3_CTRL_REG.DW );
+	H3.log.printf("CPU3_STATUS_REG %08x\n", H3.CPU3_STATUS_REG.DW );
+
 	
 }
