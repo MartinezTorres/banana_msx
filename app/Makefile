@@ -1,6 +1,8 @@
+CFLAGS = -pthread -Wall -Wextra -Ofast -fno-strict-aliasing -static-libgcc -static
+CXX=arm-linux-gnueabihf-g++
 
 bananapp: *.cc core/core.h
-	$(CXX) -pthread -O3 bananapp.cc -o bananapp
+	$(CXX) $(CFLAGS) bananapp.cc -o bananapp
 
 core/core.h: core/src/*
 	cd core && make

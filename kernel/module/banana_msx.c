@@ -26,6 +26,8 @@ MODULE_DESCRIPTION("Banana MSX Module");
 #define MAPPED_MEMORY_SIZE  (128 * 1024 * 1024)
 
 static struct {
+	
+	char is_open;
 
 	char __iomem *mapped_memory;
 } msx;
@@ -34,8 +36,33 @@ static struct {
 ////////////////////////////////////////////////////////////////////////
 // MEMORY MAPPING DEVICE
 
-static int banana_msx_open(struct inode *inode, struct file *file) { return 0; }
-static int banana_msx_release(struct inode *inode, struct file *file) { return 0; }
+static int banana_msx_open(struct inode *inode, struct file *file) { 
+	
+	//printk(KERN_INFO "Banana MSX: open\n");
+
+	if (msx.is_open) {
+		printk(KERN_INFO "Banana MSX: is already open\n");
+		return -EINVAL;
+	}
+
+	msx.is_open = 1;
+	
+	return 0; 
+}
+
+static int banana_msx_release(struct inode *inode, struct file *file) { 
+
+	//printk(KERN_INFO "Banana MSX: close");
+
+	if (!msx.is_open) {
+		printk(KERN_INFO "Banana MSX: is already closed\n");
+		return -EINVAL;
+	}
+
+	msx.is_open = 0;
+
+	return 0; 
+}
 
 static ssize_t banana_msx_read(struct file *file, char *buf, size_t count, loff_t *pos) {
 
@@ -99,6 +126,7 @@ static int banana_msx_mmap(struct file *filp, struct vm_area_struct *vma)
 
     if (size > MAPPED_MEMORY_SIZE) return -EINVAL;
     
+    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
     vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
 	vma->vm_flags |= VM_IO;
    
@@ -131,6 +159,8 @@ static struct {
 static int banana_msx_init_device(void) {
 	
 	int err = 0;
+	
+	msx.is_open = 0;
 	
     msx.mapped_memory = ioremap(MAPPED_MEMORY_ADDRESS, MAPPED_MEMORY_SIZE);
 

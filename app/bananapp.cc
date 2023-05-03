@@ -12,7 +12,9 @@
 #include <memory>
 #include <chrono>
 
-namespace MEMORY_MAP {
+#include "core/src/bsx.h"
+
+namespace MEMORY_MAP_OLD {
 	enum {
 		start         = 0x58000000,
 		
@@ -33,6 +35,7 @@ struct Banana_MSX {
 	
 	int fd;
 	uint8_t *shared_mem;
+	volatile BSX::MEMMAP_U *mem;
 	
 	volatile bool thread_alive;
 	std::shared_ptr<std::thread> t;
@@ -42,10 +45,14 @@ struct Banana_MSX {
 		fd = open("/dev/banana_msx", O_RDWR);
 		if (fd < 0) throw std::runtime_error("Failed to open file");
 		
-		shared_mem = (uint8_t *) mmap( NULL, MEMORY_MAP::end - MEMORY_MAP::start, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+		shared_mem = (uint8_t *) mmap( NULL, 128_M, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
 		if (shared_mem == MAP_FAILED) throw std::runtime_error("Mapping failed");
 		
-		w<uint32_t>(MEMORY_MAP::buffer_begin, 0);
+		mem = &HAL_map<BSX::MEMMAP_U>(shared_mem, 0x58000000);
+		volatile auto &log = *&mem->log;
+		
+		log.pos = 0;
+
 		thread_alive = true;
 		t = std::make_shared<std::thread>([this](){ this->log_thread(); });
 	}
@@ -54,37 +61,30 @@ struct Banana_MSX {
 		thread_alive = false;
 		if (t) t->join();
 		
-		munmap(shared_mem, MEMORY_MAP::end - MEMORY_MAP::start);
+		munmap(shared_mem, 128_M);
 		close(fd);
 	}
 	
 	void log_thread() {
 
 		using namespace std::chrono_literals;
- 
-   		uint32_t pos;
-		r(MEMORY_MAP::buffer_begin, pos);
 		
+		volatile auto &log = *&mem->log;
+	
+ 
+   		uint32_t pos = 0;
 		while (thread_alive) {
 			
-			uint32_t new_pos;
-			r(MEMORY_MAP::buffer_begin, new_pos);
-			
+			uint32_t new_pos = log.pos;
 			if (pos == new_pos) {
 				std::this_thread::sleep_for(100ms);				
 				continue;
 			}
 			
-			char c;
-			r(MEMORY_MAP::buffer_begin+4+pos, c);
-			//printf("%06d %06d: %c %03d\n", pos, new_pos, c, c);
-			putchar(c);
-			pos++;
+			putchar(log.data[pos++]);
 			pos = pos & ((1<<20)-1);
 		}
 	}
-	
-	
 	
 	void load_core() {
 
@@ -96,42 +96,15 @@ struct Banana_MSX {
 		printf("size: %d bytes\n", (uint32_t)sizeof(core_process));
 		printf("init: %08x\n", init);
 		
-		//memcpy(&shared_mem[ MEMORY_MAP::program_begin -  MEMORY_MAP::start ], (void *)&core_process[0], sizeof(core_process));
-		
-		uint32_t pos = MEMORY_MAP::program_begin;
-		
-		for (auto c : core_process)
-			w(pos++, c);
-		
-		w(MEMORY_MAP::start, init);
-	}
-
-		
-	
-	template<typename T>
-	void r(uint32_t pos, T &t) {
-		
-		lseek(fd, pos - MEMORY_MAP::start, SEEK_SET);
-		if (read(fd, &t, sizeof(T)) != sizeof(T)) throw std::runtime_error("Failed to read");
-		//t = *(T*)(shared_mem + pos - MEMORY_MAP::start);
-	}
-
-	template<typename T>
-	void w(uint32_t pos, T t) {
-		
-		lseek(fd, pos - MEMORY_MAP::start, SEEK_SET);
-		if (write(fd, &t, sizeof(T)) != sizeof(T)) throw std::runtime_error("Failed to write");
-		//*(T*)(shared_mem + pos - MEMORY_MAP::start) = t;
+		memcpy((void *)mem->program, core_process, sizeof(core_process));
+		mem->init = InitType(init);
 	}
 };
 
 int main() {
 
-	
 	Banana_MSX banana;
-
 	banana.load_core();
 	
 	sleep(5);
-
 }
