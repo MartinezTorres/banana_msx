@@ -3,7 +3,7 @@
 #include <stdint.h>
 struct CortexA7::MMU {
 
-	enum SectionType { FAULT = 0, SECTION = 2, SUPERSECTION = 3 };
+	enum SectionType { SECTION, SUPERSECTION };
 
 	enum Preset { NORMAL, DEVICE, ORDERED };
 
@@ -14,7 +14,7 @@ struct CortexA7::MMU {
 			uint32_t raw;
 
 			struct { 
-				uint32_t section_type        : 2; // Section type (bits[1:0])
+				uint32_t type                : 2; // Entry type (bits[1:0])
 				uint32_t bufferable          : 1; // Bufferable bit (bit[2])
 				uint32_t cacheable           : 1; // Cacheable bit (bit[3])
 				uint32_t execute_never       : 1; // eXecute Never bit (bit[4])
@@ -46,32 +46,28 @@ struct CortexA7::MMU {
 		};
 		
 		void set_address(uint32_t address) {
-
-
-			if (section_type == SUPERSECTION) {
+			
+			if (is_supersection) {
 				
 				Entry old_entry = *this;
 				raw = address;
 				pad_supersection = old_entry.pad_supersection;
 			
-			} else if (section_type == SECTION) {
+			} else {
 			
 				Entry old_entry = *this;
 				raw = address;
 				pad_section = old_entry.pad_section;
 			
-			} else {
-				
-				section_type = FAULT;
 			}
 		}
 		
-		void configure(SectionType section_type_arg, Preset preset) {
+		void configure(SectionType section_type, Preset preset) {
 			
 			uint32_t address = raw;
 			
 			raw = 0;
-			section_type = section_type_arg;
+			type = 2;
 			is_supersection = (section_type == SUPERSECTION);
 
 			// FULL ACCESS
@@ -109,7 +105,7 @@ struct CortexA7::MMU {
 
 			} else {
 				
-				section_type = FAULT;
+				type = 0;
 			}
 
 			// Disable Adress Space ID 

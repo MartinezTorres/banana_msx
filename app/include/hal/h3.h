@@ -173,7 +173,11 @@ struct H3 : CortexA7 {
 		) );
 		
 		HAL_Module( PIO, 0x01C20800, 1_K, STRUCT(
-			volatile GPIO_PORT PA, PB, PC, PD, PE, PF, PG, PL;
+			volatile GPIO_PORT PA, PB, PC, PD, PE, PF, PG;
+		) );
+
+		HAL_Module( PIOs, 0x01F02C00, 1_K, STRUCT(
+			volatile GPIO_PORT PL;
 		) );
 	};
 	

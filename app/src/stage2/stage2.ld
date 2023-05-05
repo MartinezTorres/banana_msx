@@ -1,26 +1,20 @@
 SECTIONS
 {
-    .  = 0x58200000;         
+    .  = stage2_start_address;
 
     .text : 
     {
-        *(boot)    /* Vector table */
+        *(entry_point_section)       /* Vector table */
         *(.text)      /* Program code */
     }
     .rodata : 
     {
         *(.rodata)    /* Read only data */
     }
-    _DATA_ROM_START = .;
-
-    .  = 0x58500000;  /* From 0x20000000 */      
-
-    _DATA_RAM_START = .;
-    .data : AT(_DATA_ROM_START) 
+    .data :
     {
         *(.data)      /* Data memory */
     }
-    _DATA_RAM_END = .;
 
     _BSS_START = .;   /* Indicates where BSS section starts in RAM */
     .bss :

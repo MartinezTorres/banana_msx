@@ -98,105 +98,48 @@ void ascii8_mapper(void) {
 #define UNROLL1(a) do { {a} } while (false)
 #define UNROLL8(a) do { {a} {a} {a} {a} {a} {a} {a} {a} } while (false)
 
-void switch_to_supervisor_mode(void)
-{
-    asm volatile ("msr ELR_hyp, lr\n");
-    asm volatile ("eret\n");
-}
-
-extern "C" void main() {
+static inline auto &log() { return *&BSX::MEM().log; }
+template<class... Ts> static inline int printf(Ts... args) { return log().printf(args...); }
+	
+static void main() {
 	
 	auto &mem = BSX::MEM();
 	auto &io = BSX::IO();
 
-	auto &log = *&mem.log;
-	log.init();
-
-
+	printf("Hello World BANANARMSX!\n");
 	
-	mem.mmu_l1_table.init_linear_mapping(CortexA7::MMU::SUPERSECTION, CortexA7::MMU::DEVICE);
-	for (int i = 0; i < 32; i++)
-		//log.printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
-	
-	for (uint32_t a = intptr_t(mem.RAM_CACHED); a < intptr_t(mem.RAM_CACHED) + sizeof(mem.RAM_CACHED); a += 1_M) {
-
-		uint32_t i = a / 1_M;
-		//log.printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
-		mem.mmu_l1_table[i].configure(CortexA7::MMU::SUPERSECTION, CortexA7::MMU::NORMAL);
-		//log.printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
-	}
-
-	for (uint32_t a = intptr_t(mem.RAM_ORDERED); a < intptr_t(mem.RAM_ORDERED) + sizeof(mem.RAM_ORDERED); a += 1_M) {
-
-		uint32_t i = a / 1_M;
-		//log.printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
-		mem.mmu_l1_table[i].configure(CortexA7::MMU::SUPERSECTION, CortexA7::MMU::ORDERED);
-		//log.printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
-	}
-	
-	
-	
-	
-	log << "Hello ";
-	log << " world ARM!\n";
-	
-	//CortexA7::MMU::enable( intptr_t(&mem.mmu_l1_table[0]) );
-	
-	log.printf("MMU Table at %08x\n", intptr_t(&mem.mmu_l1_table[0]) );
-	
-	{
+	if(0) {
 		CortexA7::CP15::ACTLR r;
 		r.read();
-		log.printf("ACTLR: %08x\n", r.raw);
+		printf("ACTLR: %08x\n", r.raw);
 	}
 
-	{
+	if(0) {
 		CortexA7::CP15::SCTLR r;
 		r.read();
-		log.printf("SCTLR: %08x\n", r.raw);
+		printf("SCTLR: %08x\n", r.raw);
 		CortexA7::CP15::set_instruction_cache(true);
-		//CortexA7::CP15::set_data_cache(true);
-		CortexA7::CP15::set_branch_prediction(true);
+		CortexA7::CP15::set_data_cache(false);
+		CortexA7::CP15::set_branch_prediction(false);
 		CortexA7::CP15::all_barriers();
 		
 		r.read();
-		log.printf("SCTLR: %08x\n", r.raw);
+		printf("SCTLR: %08x\n", r.raw);
 	}
 
-	log.printf("read_MIDR: %08x\n", CortexA7::CP15::read_MIDR());
+	printf("read_MIDR: %08x\n", CortexA7::CP15::read_MIDR());
 	
-	{
-		uint32_t cpsr;
-		asm volatile ("mrs %0, cpsr" : "=r" (cpsr));
-		log.printf("read_cpsr: %08x\n", cpsr);
-		if ( (cpsr & 0x1F) == 0x1a) {
-			//switch_to_supervisor_mode();
-		}
-	}
-
-
 	if (0) {
 		uint32_t cpsr;
-		asm volatile ("mrs %0, cpsr\n" : "=r" (cpsr));
-		log.printf("read_cpsr: %08x\n", cpsr);
-
-		uint32_t SPSR_hyp;
-		asm volatile ("mrs %0, SPSR_hyp\n" : "=r" (SPSR_hyp));
-		log.printf("SPSR_hyp: %08x\n", SPSR_hyp);
-
-		SPSR_hyp = 0x01d3;
-		asm volatile ("msr SPSR_hyp, %0\n" :: "r" (SPSR_hyp));
-
-		asm volatile ("mrs %0, SPSR_hyp\n" : "=r" (SPSR_hyp));
-		log.printf("SPSR_hyp: %08x\n", SPSR_hyp);
-		
-		
+		asm volatile ("mrs %0, cpsr" : "=r" (cpsr));
+		printf("read_cpsr: %08x\n", cpsr);
 	}
 
-	io.AHB1_APB1_CFG_REG.DW = 0x3140;
-	io.CPUX_AXI_CFG_REG.DW = 0x20201;
+	//H3::set_cpu_speed(H3::CPU_1008);
+	//io.AHB1_APB1_CFG_REG.DW = 0x3140;
+	//io.CPUX_AXI_CFG_REG.DW = 0x20201;
 
-	constexpr uint32_t N_ITER = 100000;
+	constexpr uint32_t N_ITER = 10000;
 	constexpr uint32_t N_REP = 1;
 	
 	{
@@ -205,7 +148,8 @@ extern "C" void main() {
 		
 		while (t0 - io.TMR1_CUR_VALUE_REG.DW < 24000000);
 	}
-		
+	
+	//io.PLL_DDR_CTRL_REG.DW = 0x90001A10;
 
 	uint32_t t0 = io.TMR1_CUR_VALUE_REG.DW;
 	uint32_t v = 0;
@@ -223,38 +167,109 @@ extern "C" void main() {
 				pe.bit04 = pa.bit05;
 				io.PE.DATA.DW = pe.DW;
 			}
-			v += pe.DW;
+			v += pe.DW + mem.mapped_cartridge[pa.word0];
 		});
 	}
-	
-	io.AHB1_APB1_CFG_REG.DW = 0x3180;
-	io.CPUX_AXI_CFG_REG.DW = 0x20203;
+	//H3::set_cpu_speed(H3::CPU_1008);
+	//io.AHB1_APB1_CFG_REG.DW = 0x3180;
+	//io.CPUX_AXI_CFG_REG.DW = 0x20203;
 	if (v == 0) {
-		log << "Done 2!\n";
+		log() << "Done 2!\n";
 	} else {
-		log << "Not Done 2!\n";
+		log() << "Not Done 2!\n";
 	}
 	uint32_t t1 = io.TMR1_CUR_VALUE_REG.DW;
 	int d = t0 - t1;
 
-	log.printf(" %d %d %d \n", t0, t1, d);
+	printf(" %d %d %d \n", t0, t1, d);
 	
-	log.printf("%d\n", d/(24 * N_REP * (N_ITER / 1000)));
+	printf("%d\n", d/(24 * N_REP * (N_ITER / 1000)));
 	
-	log.printf("%08x\n", io.CPUX_AXI_CFG_REG.DW );
+	printf("%08x\n", io.CPUX_AXI_CFG_REG.DW );
 	
-	log.printf("%08x\n", io.AHB1_APB1_CFG_REG.DW );
+	printf("%08x\n", io.AHB1_APB1_CFG_REG.DW );
 	
-	log.printf("CPU_CLK_GATING_REG %08x\n", io.CPU_CLK_GATING_REG.DW );
+	printf("CPU_CLK_GATING_REG %08x\n", io.CPU_CLK_GATING_REG.DW );
+	printf("PLL_DDR_CTRL_REG %08x\n", io.PLL_DDR_CTRL_REG.DW );
 	
 	
-	log.printf("CPU0_RST_CTRL %08x\n", io.CPU0_RST_CTRL.DW );
-	log.printf("CPU0_CTRL_REG %08x\n", io.CPU0_CTRL_REG.DW );
-	log.printf("CPU0_STATUS_REG %08x\n", io.CPU0_STATUS_REG.DW );
+	printf("CPU0_RST_CTRL %08x\n", io.CPU0_RST_CTRL.DW );
+	printf("CPU0_CTRL_REG %08x\n", io.CPU0_CTRL_REG.DW );
+	printf("CPU0_STATUS_REG %08x\n", io.CPU0_STATUS_REG.DW );
 	
-	log.printf("CPU3_RST_CTRL %08x\n", io.CPU3_RST_CTRL.DW );
-	log.printf("CPU3_CTRL_REG %08x\n", io.CPU3_CTRL_REG.DW );
-	log.printf("CPU3_STATUS_REG %08x\n", io.CPU3_STATUS_REG.DW );
-
-	//CortexA7::MMU::disable();
+	printf("CPU3_RST_CTRL %08x\n", io.CPU3_RST_CTRL.DW );
+	printf("CPU3_CTRL_REG %08x\n", io.CPU3_CTRL_REG.DW );
+	printf("CPU3_STATUS_REG %08x\n", io.CPU3_STATUS_REG.DW );
 }
+
+static void init_mmu() {
+
+	auto &mem = BSX::MEM();
+
+	log() << "Init MMU\n";
+
+	mem.mmu_l1_table.init_linear_mapping(CortexA7::MMU::SUPERSECTION, CortexA7::MMU::DEVICE);
+	for (int i = 0; i < 32; i++)
+		printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
+	
+	for (uint32_t a = intptr_t(mem.RAM_CACHED); a < intptr_t(mem.RAM_CACHED) + sizeof(mem.RAM_CACHED); a += 1_M) {
+
+		uint32_t i = a / 1_M;
+		//printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
+		mem.mmu_l1_table[i].configure(CortexA7::MMU::SUPERSECTION, CortexA7::MMU::NORMAL);
+		//printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
+	}
+
+	for (uint32_t a = intptr_t(mem.RAM_ORDERED); a < intptr_t(mem.RAM_ORDERED) + sizeof(mem.RAM_ORDERED); a += 1_M) {
+
+		uint32_t i = a / 1_M;
+		//printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
+		mem.mmu_l1_table[i].configure(CortexA7::MMU::SUPERSECTION, CortexA7::MMU::ORDERED);
+		//printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
+	}
+	
+	
+	printf("MMU Table at %08x\n", intptr_t(&mem.mmu_l1_table[0]) );
+		
+	CortexA7::MMU::enable( intptr_t(&mem.mmu_l1_table[0]) );
+
+	log() << "MMU Enabled\n";
+		
+}
+
+static void deinit_mmu() {
+
+	log() << "Disable MMU\n";
+
+	CortexA7::MMU::disable();	
+
+	log() << "MMU disabled\n";
+}
+static void start_stage2() {
+	
+	asm volatile (".global stage2_start_address\n");
+	asm volatile (".set stage2_start_address,%c0\n" : : "i" (&BSX::MEM().stage2) );	
+	
+	extern uint32_t _BSS_START;
+	extern uint32_t _BSS_END;
+	
+    // Set memory in bss segment to zeros 
+    uint32_t *bss_start_p = &_BSS_START; 
+    uint32_t *bss_end_p   = &_BSS_END;
+
+    while (bss_start_p != bss_end_p) { *bss_start_p++ = 0; }
+
+	// INIT LOG
+	log().init();
+
+	// MMU
+	init_mmu();
+
+    // Go to Main
+    main();	
+
+	deinit_mmu();
+}
+
+InitType entry_point[1] __attribute__ ((section("entry_point_section"))) = { start_stage2 };
+
