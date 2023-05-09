@@ -3,7 +3,7 @@ CFLAGS = -pthread -Wall -Wextra -Ofast -fno-strict-aliasing -static-libgcc -stat
 
 INCLUDES = $(shell find include)
  
-loader: src/loader.cc tmp/stage1/stage1.h tmp/stage2/stage2.h
+loader: src/loader.cc tmp/stage1/stage1.bin.h tmp/stage2/stage2.bin.h
 	$(CXX) $(CFLAGS) src/loader.cc -o loader
 
 
@@ -11,7 +11,7 @@ CXX_NONE = arm-none-eabi-c++
 OBJDUMP = arm-none-eabi-objdump
 OBJDUMPFLAGS = --visualize-jumps --source-comment="                                        ;" 
 CFLAGS_NONE = -std=gnu++2a -Wall -Wextra -Ofast -mcpu=cortex-a7 -marm -ffreestanding -fno-exceptions -fno-strict-aliasing -I. -Iinclude
-UPPERCASE = $(shell echo '$1' | tr '[:lower:]' '[:upper:]')
+UPPERCASE = $(shell echo '$1' | tr '[:lower:]' '[:upper:]'| tr '.' '_')
 
 .SUFFIXES:
 
@@ -31,6 +31,12 @@ tmp/%.bin: tmp/%.o src/%.ld
 tmp/%.h: tmp/%.bin
 	echo -n "#define $(call UPPERCASE,$(*D)) { " > tmp/$*.h
 	echo -n `cat tmp/$*.bin | xxd -C -i` >> tmp/$*.h
+	echo " }" >> tmp/$*.h
+
+tmp/%.h: */%
+	mkdir -p $(@D)
+	echo -n "#define $(call UPPERCASE,$(@F)) { " > tmp/$*.h
+	echo -n `cat $< | xxd -C -i` >> tmp/$*.h
 	echo " }" >> tmp/$*.h
 	
 clean:

@@ -1,25 +1,35 @@
 #include "bsx.h"
 
 enum {
-	RD = 1<<16, // PA
-	WR = 1<<21, // PA
-	SLTSL = 1<<17, // PA
+	PA_RD = 1<<16, // PA
+	PA_WR = 1<<21, // PA
+	PA_SLTSL = 1<<17, // PA
 
-	LCD_CS = 1<<8, // PE
-	LCD_RESET = 1<<9, // PE
-	LCD_DC = 1<<10, // PE
+	PE_LCD_CS = 1<<8, // PE
+	PE_LCD_RESET = 1<<9, // PE
+	PE_LCD_DC = 1<<10, // PE
 
-	SYS_CLK = 1<<11, // PE
-	MERQ = 1<<12, // PE
-	IORQ = 1<<13, // PE
-	RESET = 1<<14, // PE
-	BUSDIR = 1<<15, // PE
+	PE_SYS_CLK = 1<<11, // PE
+	PE_MERQ = 1<<12, // PE
+	PE_IORQ = 1<<13, // PE
+	PE_RESET = 1<<14, // PE
+	PE_BUSDIR = 1<<15, // PE
+
+	B_RD = 1<<16,
+	B_WR = 1<<21,
+	B_SLTSL = 1<<17,
+
+	B_SYS_CLK = 1<<( 24 + 11),
+	B_MERQ = 1<<( 24 + 12),
+	B_IORQ = 1<<( 24 + 13),
+	B_RESET = 1<<( 24 + 14),
+	B_BUSDIR = 1<<( 24 + 15),
 	
-	M1 = 1<<2, // PL
-	RFSH = 1<<4, // PL
+	PL_M1 = 1<<2, // PL
+	PL_RFSH = 1<<4, // PL
 
-	WAIT = 1<<4, // PC
-	IRQ = 1<<7, // PC
+	PC_WAIT = 1<<4, // PC
+	PC_IRQ = 1<<7, // PC
 };
 
 /*
@@ -135,9 +145,9 @@ static void main() {
 		printf("read_cpsr: %08x\n", cpsr);
 	}
 
-	//H3::set_cpu_speed(H3::CPU_1008);
-	//io.AHB1_APB1_CFG_REG.DW = 0x3140;
-	//io.CPUX_AXI_CFG_REG.DW = 0x20201;
+	H3::set_cpu_speed(H3::CPU_1200);
+	io.AHB1_APB1_CFG_REG.DW = 0x3140;
+	io.CPUX_AXI_CFG_REG.DW = 0x20201;
 
 	constexpr uint32_t N_ITER = 10000;
 	constexpr uint32_t N_REP = 1;
@@ -155,24 +165,33 @@ static void main() {
 	uint32_t v = 0;
 
 	uint32_t i = N_ITER;
+	CortexA7::u32_u pa; pa.DW = io.PA.DATA.DW;
+	CortexA7::u32_u pe; pe.DW = io.PE.DATA.DW;
+	CortexA7::u32_u pc; pc.DW = io.PC.DATA.DW;
 	while (i--) {
-		UNROLL1({
-			CortexA7::u32_u pa; pa.DW = io.PA.DATA.DW;
-			CortexA7::u32_u pe; pe.DW = io.PE.DATA.DW;
+		pa.DW = io.PA.DATA.DW;
+		pe.DW = io.PE.DATA.DW;
+		
+		CortexA7::u32_u msx_control_bus = pa;
+		msx_control_bus.byte3 = pe.byte1;
+		
+		if ( msx_control_bus.DW & (B_MREQ + B_SLTSL + B_CS + B_RD) == 0 ) { // This is a read! 
+
+			io.PC.DATA.byte0 = PC_WAIT;
+			io.PE.CFG[0] = 0x11111111;
+			io.PE.DATA.byte0 = mem.mapped_cartridge[pa.word0];
+			io.PC.DATA.byte0 = 0;
 			
-			CortexA7::u32_u msx_control_bus = pa;
-			msx_control_bus.byte3 = pe.byte1;
-			
-			if (msx_control_bus.bit15 && msx_control_bus.bit16) { 
-				pe.bit04 = pa.bit05;
-				io.PE.DATA.DW = pe.DW;
+			while ( msx_control_bus.DW & (B_CS) ) {
+				msx_control_bus.byte3 = io.PE.DATA.byte1;
 			}
-			v += pe.DW + mem.mapped_cartridge[pa.word0];
-		});
+			io.PE.CFG[0] = 0x11111111;
+		}
+		v += pe.DW + mem.mapped_cartridge[pa.word0];
 	}
-	//H3::set_cpu_speed(H3::CPU_1008);
-	//io.AHB1_APB1_CFG_REG.DW = 0x3180;
-	//io.CPUX_AXI_CFG_REG.DW = 0x20203;
+	H3::set_cpu_speed(H3::CPU_1008);
+	io.AHB1_APB1_CFG_REG.DW = 0x3180;
+	io.CPUX_AXI_CFG_REG.DW = 0x20203;
 	if (v == 0) {
 		log() << "Done 2!\n";
 	} else {
@@ -212,7 +231,7 @@ static void init_mmu() {
 	for (int i = 0; i < 32; i++)
 		printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
 	
-	for (uint32_t a = intptr_t(mem.RAM_CACHED); a < intptr_t(mem.RAM_CACHED) + sizeof(mem.RAM_CACHED); a += 1_M) {
+	if(1) for (uint32_t a = intptr_t(mem.RAM_CACHED); a < intptr_t(mem.RAM_CACHED) + sizeof(mem.RAM_CACHED); a += 1_M) {
 
 		uint32_t i = a / 1_M;
 		//printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
@@ -220,7 +239,7 @@ static void init_mmu() {
 		//printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );
 	}
 
-	for (uint32_t a = intptr_t(mem.RAM_ORDERED); a < intptr_t(mem.RAM_ORDERED) + sizeof(mem.RAM_ORDERED); a += 1_M) {
+	if(1) for (uint32_t a = intptr_t(mem.RAM_ORDERED); a < intptr_t(mem.RAM_ORDERED) + sizeof(mem.RAM_ORDERED); a += 1_M) {
 
 		uint32_t i = a / 1_M;
 		//printf("MMU %03d: %08x\n", i, mem.mmu_l1_table[i].raw );

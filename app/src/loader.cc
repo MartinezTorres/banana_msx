@@ -114,20 +114,15 @@ struct Banana_MSX {
 
 		printf("Stage2 init: %08x \n", init_address);
 		
-		if (mem->stage2_init != InitType(0xBADC0DE)) {
+		if (mem->stage2_init0 != InitType(0xBADC0DE0)) {
 			
 			printf("Stage1 not ready for Stage2\n");
 			return;
 		}
 		
-		if (mem->stage2_init == InitType(init_address)) {
-			
-			printf("Stage2 already loaded\n");
-			return;
-		}
-		
 		memcpy((void *)&mem->stage2[0], &stage2[0], sizeof(stage2));
-		mem->stage2_init = InitType(init_address);
+		mem->stage2_init0 = InitType(init_address);
+		mem->stage2_init1 = InitType(init_address);
 	}};
 
 int main() {

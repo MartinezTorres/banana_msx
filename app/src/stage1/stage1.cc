@@ -32,7 +32,8 @@ static void __attribute__((target("arm"))) __attribute__ ((naked)) start_stage1(
 		uint32_t t0 = io.TMR1_CUR_VALUE_REG.DW;
 		
 		mem.stage1_init = InitType(0xC0FFEE);
-		mem.stage2_init = InitType(0xBADC0DE);
+		mem.stage2_init0 = InitType(0xBADC0DE0);
+		mem.stage2_init1 = InitType(0xBADC0DE1);
 
 		for (;;) {
 
@@ -46,14 +47,18 @@ static void __attribute__((target("arm"))) __attribute__ ((naked)) start_stage1(
 			t0 = t1;			
 			io.PL.DATA.DW = io.PL.DATA.DW ^ 1024;
 
-			if (mem.stage2_init != InitType(0xBADC0DE)) {
+			if (mem.stage2_init0 != InitType(0xBADC0DE0)) {
 				
-				auto stage2_init = mem.stage2_init;
-				mem.stage2_init = InitType(0xBEEF);
-				
-				(stage2_init)();
+				auto stage2_init0 = mem.stage2_init0;
+				auto stage2_init1 = mem.stage2_init1;
 
-				mem.stage2_init = InitType(0xBADC0DE);
+				if (stage2_init0 == stage2_init1) {
+
+					(stage2_init0)();
+
+					mem.stage2_init0 = InitType(0xBADC0DE0);
+					mem.stage2_init1 = InitType(0xBADC0DE1);
+				} 
 			}
 		}
 	}
